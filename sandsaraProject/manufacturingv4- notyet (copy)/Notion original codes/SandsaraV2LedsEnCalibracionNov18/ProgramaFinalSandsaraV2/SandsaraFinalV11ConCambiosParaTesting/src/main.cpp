@@ -337,11 +337,7 @@ Testing haloTest;
 void setup()
 {
 
-    preferences.begin("myApp", false);
-    int indexCustomPattern = preferences.getInt("indexCustomPattern", 300);
-    String customPatterns = preferences.getString("customPatterns", "");
-    preferences.end();
-
+   
     delay(200); // power-up safety delay
     //====Serial configuration====
     Serial.begin(115200);
@@ -418,6 +414,7 @@ void setup()
     pinMode(SENSOR_HALL_PIN, INPUT_PULLUP);
     attachInterrupt(digitalPinToInterrupt(SENSOR_HALL_PIN), manejarInterrupcion, CHANGE);
 
+  
 #endif
     //------------------------------------------------------------------
 
@@ -599,16 +596,31 @@ void setup()
     Serial.println(bluetoothNameGlobal);
     BluetoothSand.setName(bluetoothNameGlobal);
 
+
+    ////----Custom paterns from App copde:
+     preferences.begin("myApp", false);
+    int indexCustomPattern = preferences.getInt("indexCustomPattern", 300);
+    String customPatterns = preferences.getString("customPatterns", "");
+    preferences.end();
+    
+    BluetoothSand.setindexCustomPatterns(String(indexCustomPattern));
+
+
 #ifdef v2Sandsara
+    //Battery detector
     // Segmento donde se lee el voltaje de la bateria y se envia por BLE
+
     float voltajeReferencia = 3.3;
     float voltajeBateriaReal = 14.0;
     float factorConversion = voltajeBateriaReal / voltajeReferencia;
     int valueADC = 0;
-    valueADC = analogRead(ADC1_PIN);
+    valueADC = analogRead(ADC2_PIN);
+    int valuePowerAdapter;
+    valuePowerAdapter = digitalRead(ADC1_PIN);
+
     float voltajeBateria = (valueADC / 4095.0) * voltajeReferencia * factorConversion;
     String voltajeBateriaStr = String(voltajeBateria, 2);
-    BluetoothSand.setBattery(voltajeBateriaStr);
+    BluetoothSand.setBattery(voltajeBateriaStr + "," + String(valuePowerAdapter));
 #endif
 
     BluetoothSand.setTimePaths(bluetoothTimePaths);

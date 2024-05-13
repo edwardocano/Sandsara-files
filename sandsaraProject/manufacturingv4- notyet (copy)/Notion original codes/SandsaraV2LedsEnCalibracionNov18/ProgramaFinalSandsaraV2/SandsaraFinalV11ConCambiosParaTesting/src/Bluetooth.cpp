@@ -2176,15 +2176,17 @@ class FilesCallbacks_indexCustomPatterns : public BLECharacteristicCallbacks
         String index = rxData.c_str();
         Serial.print("Index custom pattern written");
         preferences.begin("myApp", false);
-        preferences.putInt("indexCustomPattern",index.toInt() );
+        preferences.putInt("indexCPattern",index.toInt() );
         preferences.end();
     }
-    void onRead(BLECharacteristic *characteristic)
+      void onRead(BLECharacteristic *characteristic)
     {
-        std::string rxValue = characteristic->getValue();
-        String value = rxValue.c_str();
+        preferences.begin("myApp", false);
+        int indexCustomPattern = preferences.getInt("indexCPattern",300);
+        preferences.end();
+        characteristic->setValue(String(indexCustomPattern));
         Serial.print("Read from Cellphone indexcustompattern ");
-        Serial.println(value);
+        Serial.println(indexCustomPattern);
     }
 };
 
@@ -2935,7 +2937,31 @@ class generalCallbacks_tracksForCalib : public BLECharacteristicCallbacks
     #endif
 };
 
+class generalCallbacks_battery : public BLECharacteristicCallbacks
+{
 
+    void onRead(BLECharacteristic *characteristic)
+    {
+        float voltajeReferencia = 3.3;
+        float voltajeBateriaReal = 14.0;
+        float factorConversion = voltajeBateriaReal / voltajeReferencia;
+        int valueADC = 0;
+        valueADC = analogRead(ADC2_PIN);
+        bool valuePowerAdapter;
+        valuePowerAdapter = digitalRead(ADC1_PIN);
+
+        float voltajeBateria = (valueADC / 4095.0) * voltajeReferencia * factorConversion;
+        String voltajeBateriaStr = String(voltajeBateria, 2);
+        // BluetoothSand.setBattery(voltajeBateriaStr + "," + String(valuePowerAdapter));
+        String valueToSend = voltajeBateriaStr + "," + String(valuePowerAdapter);
+        generalCharacteristic_battery->setValue(valueToSend);
+        //std::string rxValue = characteristic->getValue();
+        //String value = rxValue.c_str();
+
+        Serial.print("Read battery value from BLE: ");
+        Serial.println(valueToSend);
+    }
+};
 
 /**
  * @brief **[BLE Command]** This class is used to create an object to be called when you write to the generalPause characteristic.
@@ -3623,6 +3649,7 @@ int Bluetooth::init(String name){
 
     generalCharacteristic_TracksForCalib->setCallbacks(new generalCallbacks_tracksForCalib());
 
+    generalCharacteristic_battery->setCallbacks(new generalCallbacks_battery());
     //====Characteristics for File configuration====
     fileCharacteristic_receiveFlag = pServiceFile->createCharacteristic(
         FILE_UUID_RECEIVEFLAG,
